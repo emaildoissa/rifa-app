@@ -1,0 +1,12 @@
+
+# rifa-deploy/.gitignore
+
+# Ignorar o ficheiro principal de variáveis de ambiente
+.env
+
+# Ignorar as pastas de dependências (o Docker trata disso)
+rifa-online-backend/vendor/
+rifa-online-frontend/node_modules/
+
+# Ignorar ficheiros de build (o Docker cria os seus)
+rifa-online-frontend/dist/

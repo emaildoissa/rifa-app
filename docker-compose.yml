@@ -1,0 +1,60 @@
+
+# rifa-deploy/docker-compose.yml
+
+version: '3.8'
+
+services:
+
+  # --- 1. Serviço da Base de Dados (PostgreSQL) ---
+  db:
+    image: postgres:15-alpine
+    container_name: rifa-db
+    environment:
+      # Lê as variáveis do ficheiro .env
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # A sua porta customizada: [Porta da VPS] : [Porta do Container]
+      - "5433:5432"
+    volumes:
+      # Persiste os dados da base de dados num volume
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # --- 2. Serviço do Backend (Go) ---
+  backend:
+    # Constrói a imagem a partir do Dockerfile na pasta indicada
+    build: ./rifa-online-backend
+    container_name: rifa-backend
+    ports:
+      # Expõe a porta do nosso servidor Gin
+      - "8080:8080"
+    depends_on:
+      - db  # Só inicia depois da base de dados estar pronta
+    restart: unless-stopped
+    environment:
+      # Passa TODAS as variáveis de ambiente para a nossa app Go
+      # Nota: A BD não é 'localhost', é o nome do serviço 'db'
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      ASAAS_API_KEY: ${ASAAS_API_KEY}
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDER_EMAIL: ${SENDER_EMAIL}
+
+  # --- 3. Serviço do Frontend (React + Nginx) ---
+  frontend:
+    # Constrói a imagem a partir do Dockerfile na pasta indicada
+    build: ./rifa-online-frontend
+    container_name: rifa-frontend
+    ports:
+      # Expõe o Nginx para o mundo. Porta 80 é a porta HTTP padrão.
+      - "80:80"
+    depends_on:
+      - backend # Apenas por uma questão de ordem
+    restart: unless-stopped
+
+# Define o volume que o 'db' usa para persistir dados
+volumes:
+  pgdata:

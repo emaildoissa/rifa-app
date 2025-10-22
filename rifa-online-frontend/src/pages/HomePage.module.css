@@ -1,0 +1,96 @@
+/* src/pages/HomePage.module.css */
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 30px 0;
+  color: #111827;
+}
+
+.loading,
+.error,
+.empty {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.error {
+  color: #ef4444;
+}
+
+/* Nossa grade de cards */
+.rifasList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* O card individual */
+.rifaCard {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Garante que o link do botão não "vaze" */
+  display: flex;
+  flex-direction: column; /* Organiza o card verticalmente */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.rifaCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cardImagePlaceholder {
+  height: 180px;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.cardContent {
+  padding: 16px;
+  flex-grow: 1; /* Faz esta seção crescer para preencher o espaço */
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.cardPrize {
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.cardPrice {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.cardLink {
+  display: block;
+  background-color: #22c55e;
+  color: #ffffff;
+  text-align: center;
+  font-weight: 600;
+  padding: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.cardLink:hover {
+  background-color: #16a34a;
+}

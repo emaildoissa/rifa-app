@@ -1,0 +1,39 @@
+# rifa-online-backend/Dockerfile
+
+# --- Estágio 1: Build ---
+# Usamos a imagem oficial do Go para construir nosso app
+FROM golang:1.21-alpine AS builder
+
+# Setamos o diretório de trabalho dentro do container
+WORKDIR /app
+
+# Copiamos os arquivos de dependência primeiro, para aproveitar o cache
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copiamos todo o resto do código-fonte
+COPY . .
+
+# Desabilitamos o CGO (para um build estático) e construímos o app
+# O build -o /app/server produz um único arquivo executável chamado 'server'
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/api
+
+# --- Estágio 2: Run ---
+# Usamos a imagem 'alpine' que é minúscula (cerca de 5MB)
+# Isso é ótimo para segurança e velocidade
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copiamos APENAS o executável que construímos no estágio 1
+COPY --from=builder /app/server .
+
+# Copiamos o .env (ATENÇÃO: Vamos configurar isso melhor no docker-compose)
+# Por enquanto, só precisamos que o app possa ler um .env
+COPY .env .
+
+# Expomos a porta 8080 (a porta que nosso Gin usa)
+EXPOSE 8080
+
+# O comando para rodar nosso servidor
+CMD ["/app/server"]
