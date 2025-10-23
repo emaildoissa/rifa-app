@@ -23,7 +23,10 @@ func main() {
 
 	router := gin.Default()
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:5173"} // Permite especificamente o seu frontend
+	config.AllowOrigins = []string{
+		"http://localhost:5173",
+		"http://191.252.223.221:8081",
+	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"} // Permite o cabeçalho de Authorization
 	router.Use(cors.New(config))
