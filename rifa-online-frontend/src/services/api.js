@@ -4,7 +4,8 @@ import axios from 'axios';
 
 // 1. Cria a instância do Axios
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
+  //baseURL: 'http://localhost:8080/api/v1',
+  baseURL: 'http://191.252.223.221:8080/api/v1',
 });
 
 // 2. Adiciona um "Interceptor" de Requisição
