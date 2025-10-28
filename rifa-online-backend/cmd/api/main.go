@@ -49,7 +49,7 @@ func main() {
 		v1.POST("/rifas/:id/reservar", handlers.ReservarNumeros)
 
 		// Rota de webhook
-		v1.POST("/webhooks/asaas", handlers.AsaasWebhookHandler)
+		//v1.POST("/webhooks/asaas", handlers.AsaasWebhookHandler)
 	}
 
 	// Grupo /admin (rotas protegidas)

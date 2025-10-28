@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"rifa-online-backend/internal/database"
 	"rifa-online-backend/internal/models"
-	"rifa-online-backend/internal/payment"
 	"strconv"
 	"time"
 
@@ -271,7 +270,7 @@ func ReservarNumeros(c *gin.Context) {
 			return
 		}
 	}
-	customerID, err := payment.FindOrCreateCustomer(input.NomeComprador, input.EmailComprador, input.CpfCnpj)
+	/* customerID, err := payment.FindOrCreateCustomer(input.NomeComprador, input.EmailComprador, input.CpfCnpj)
 	if err != nil {
 		log.Printf("Erro no Asaas (cliente): %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro no provedor de pagamento"})
@@ -283,7 +282,7 @@ func ReservarNumeros(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao gerar cobrança PIX"})
 		return
 	}
-	_, err = tx.Exec(context.Background(), "UPDATE pagamentos SET id_transacao_gateway = $1 WHERE id = $2", chargeResponse.ID, pagamentoID)
+	_, err = tx.Exec(context.Background(), "UPDATE pagamentos SET id_transacao_gateway = $1 WHERE id = $2", chargeResponse.ID, pagamentoID)*/
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar ID do gateway"})
 		return
@@ -292,7 +291,13 @@ func ReservarNumeros(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao finalizar a reserva"})
 		return
 	}
-	c.JSON(http.StatusOK, chargeResponse)
+	//c.JSON(http.StatusOK, chargeResponse)
+	// --- NOVA RESPOSTA ---
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Reserva criada com sucesso! Envie o comprovante.",
+		"paymentId": pagamentoID, // Envia o ID para o frontend
+		"valor":     valorTotal,
+	})
 }
 
 func UpdateRifa(c *gin.Context) {

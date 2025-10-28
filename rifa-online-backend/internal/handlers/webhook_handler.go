@@ -1,20 +1,18 @@
 // internal/handlers/webhook_handler.go
 package handlers
 
-import (
-	"context"
-	"log"
-	"net/http"
-	"os"
-	"rifa-online-backend/internal/database"
-	"rifa-online-backend/internal/email" // <-- 1. IMPORTE O NOVO PACOTE DE EMAIL
-	"rifa-online-backend/internal/models"
+/* 	"context"
+"log"
+"net/http"
+"os"
+"rifa-online-backend/internal/database"
+"rifa-online-backend/internal/email"
+"rifa-online-backend/internal/models"
 
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5" // Importe pgx para usar pgtype
-)
+"github.com/gin-gonic/gin"
+"github.com/jackc/pgx/v5" */
 
-func AsaasWebhookHandler(c *gin.Context) {
+/* func AsaasWebhookHandler(c *gin.Context) {
 	// 1. Validação de Segurança
 	receivedToken := c.GetHeader("asaas-access-token")
 	expectedToken := os.Getenv("ASAAS_WEBHOOK_TOKEN")
@@ -105,10 +103,10 @@ func AsaasWebhookHandler(c *gin.Context) {
 
 		// Query para buscar todos os dados necessários para o recibo
 		query := `
-			SELECT 
-				n.nome_comprador, 
-				n.email_comprador, 
-				r.titulo, 
+			SELECT
+				n.nome_comprador,
+				n.email_comprador,
+				r.titulo,
 				ARRAY_AGG(n.numero ORDER BY n.numero) as numeros
 			FROM pagamentos p
 			JOIN pagamento_numeros pn ON p.id = pn.pagamento_id
@@ -145,3 +143,4 @@ func AsaasWebhookHandler(c *gin.Context) {
 	// 7. Responder ao Asaas que tudo foi recebido com sucesso
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
+*/
