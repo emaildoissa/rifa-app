@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"rifa-online-backend/internal/database"
@@ -112,19 +111,32 @@ func GetRifaByID(c *gin.Context) {
 	const tempoExpiracao = "15 minutes"
 	// Usamos fmt.Sprintf para injetar o valor do intervalo direto na string.
 	// Isso é seguro pois 'tempoExpiracao' é uma constante interna.
-	sqlNumeros := fmt.Sprintf(`
-        SELECT id, rifa_id, numero, 
-        CASE 
-            WHEN status = 'reservado' AND data_reserva < (NOW() - INTERVAL '%s') THEN 'disponivel'
-            ELSE status 
-        END as status,
-        nome_comprador, email_comprador, telefone_comprador
-        FROM numeros
-        WHERE rifa_id = $1
-        ORDER BY numero ASC
-    `, tempoExpiracao) // O valor de '15 minutes' é inserido onde está o '%s'
+	/* 	sqlNumeros := fmt.Sprintf(`
+	        SELECT id, rifa_id, numero,
+	        CASE
+	            WHEN status = 'reservado' AND data_reserva < (NOW() - INTERVAL '%s') THEN 'disponivel'
+	            ELSE status
+	        END as status,
+	        nome_comprador, email_comprador, telefone_comprador
+	        FROM numeros
+	        WHERE rifa_id = $1
+	        ORDER BY numero ASC
+	    `, tempoExpiracao) // O valor de '15 minutes' é inserido onde está o '%s'
 
-	// Agora a query tem apenas um placeholder ($1), que é o 'id'
+		// Agora a query tem apenas um placeholder ($1), que é o 'id'
+		rows, err := database.DB.Query(context.Background(), sqlNumeros, id)
+		if err != nil {
+			log.Printf("Erro ao buscar números da rifa: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar os números da rifa"})
+			return
+		} */
+	sqlNumeros := `
+    SELECT id, rifa_id, numero, status, nome_comprador, email_comprador, telefone_comprador
+    FROM numeros
+    WHERE rifa_id = $1
+    ORDER BY numero ASC
+`
+	// A chamada volta a ter apenas um argumento: 'id'
 	rows, err := database.DB.Query(context.Background(), sqlNumeros, id)
 	if err != nil {
 		log.Printf("Erro ao buscar números da rifa: %v", err)
@@ -212,22 +224,46 @@ func ReservarNumeros(c *gin.Context) {
 	// --- 3. CORREÇÃO AQUI ---
 	const tempoExpiracao = "15 minutes"
 	// Mesma lógica de usar fmt.Sprintf
-	queryUpdate := fmt.Sprintf(`
-        UPDATE numeros 
-        SET
-            status = 'reservado',
-            nome_comprador = $1,
-            email_comprador = $2,
-            telefone_comprador = $3,
-            data_reserva = $4
-        WHERE
-            rifa_id = $5 AND
-            numero = ANY($6::int[]) AND
-            (status = 'disponivel' OR (status = 'reservado' AND data_reserva < (NOW() - INTERVAL '%s')))
-        RETURNING id
-    `, tempoExpiracao)
+	/* queryUpdate := fmt.Sprintf(`
+	        UPDATE numeros
+	        SET
+	            status = 'reservado',
+	            nome_comprador = $1,
+	            email_comprador = $2,
+	            telefone_comprador = $3,
+	            data_reserva = $4
+	        WHERE
+	            rifa_id = $5 AND
+	            numero = ANY($6::int[]) AND
+	            (status = 'disponivel' OR (status = 'reservado' AND data_reserva < (NOW() - INTERVAL '%s')))
+	        RETURNING id
+	    `, tempoExpiracao)
 
-	// Agora a chamada tem 6 argumentos (o $7 foi removido da chamada)
+		// Agora a chamada tem 6 argumentos (o $7 foi removido da chamada)
+		rows, err := tx.Query(context.Background(), queryUpdate,
+			input.NomeComprador,
+			input.EmailComprador,
+			input.TelefoneComprador,
+			time.Now(),    // $4
+			rifaID,        // $5
+			input.Numeros, // $6
+			// 'tempoExpiracao' não é mais passado como argumento
+		) */
+	queryUpdate := `
+    UPDATE numeros 
+    SET
+        status = 'reservado',
+        nome_comprador = $1,
+        email_comprador = $2,
+        telefone_comprador = $3,
+        data_reserva = $4
+    WHERE
+        rifa_id = $5 AND
+        numero = ANY($6::int[]) AND
+        status = 'disponivel' -- Somente permite reservar se estiver disponível
+    RETURNING id
+`
+	// A chamada volta a ter 6 argumentos
 	rows, err := tx.Query(context.Background(), queryUpdate,
 		input.NomeComprador,
 		input.EmailComprador,
@@ -235,7 +271,6 @@ func ReservarNumeros(c *gin.Context) {
 		time.Now(),    // $4
 		rifaID,        // $5
 		input.Numeros, // $6
-		// 'tempoExpiracao' não é mais passado como argumento
 	)
 	// --- FIM DA CORREÇÃO ---
 
