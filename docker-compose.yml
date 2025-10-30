@@ -1,4 +1,4 @@
-# (Linha "version: '3.8'" REMOVIDA, pois é obsoleta)
+version: "3.7"
 
 services:
   # --- 1. Serviço da Base de Dados (PostgreSQL) ---
@@ -9,46 +9,66 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5434:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql/data # Salva os dados localmente
     restart: unless-stopped
+    networks:
+      - rifa-net # Conecta-se apenas à rede interna do app
 
   # --- 2. Serviço do Backend (Go) ---
   backend:
-    build: ./rifa-online-backend
-    # --- CORREÇÃO AQUI ---
-    # Adicione esta linha para nomear a imagem para o Docker Hub
+    # Use a imagem que você subiu para o Docker Hub
     image: emaildoissa/rifa-online:backend
-    # --- FIM DA CORREÇÃO ---
     container_name: rifa-backend
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
     depends_on:
       - db
-    restart: unless-stopped
     environment:
+      # O backend fala com o DB pelo nome do serviço 'db'
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
-      ASAAS_API_KEY: ${ASAAS_API_KEY}
-      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN}
+      GIN_MODE: release # Modo de produção para o Go/Gin
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       SENDER_EMAIL: ${SENDER_EMAIL}
+      # As ENVs do ASAAS não são mais necessárias
+    networks:
+      - rifa-net      # Rede interna para falar com o 'db'
+      - rede_interna  # Rede do Traefik para ser acessado
+    labels:
+      - "traefik.enable=true"
+      # --- Defina o subdomínio da sua API ---
+      - "traefik.http.routers.rifa-api.rule=Host(`api.rifa.automacao.free.nf`)"
+      - "traefik.http.routers.rifa-api.entrypoints=websecure"
+      - "traefik.http.routers.rifa-api.tls.certresolver=letsencryptresolver"
+      - "traefik.http.services.rifa-api.loadbalancer.server.port=8080" # Porta interna do Go
+      - "traefik.docker.network=rede_interna" # Diz ao Traefik para usar esta rede
 
   # --- 3. Serviço do Frontend (React + Nginx) ---
   frontend:
-    build: ./rifa-online-frontend
-    # --- CORREÇÃO AQUI ---
-    # Adicione esta linha para nomear a imagem para o Docker Hub
+    # Use a imagem que você subiu para o Docker Hub
     image: emaildoissa/rifa-online:frontend
-    # --- FIM DA CORREÇÃO ---
     container_name: rifa-frontend
-    ports:
-      - "8081:80"
+    restart: unless-stopped
     depends_on:
       - backend
-    restart: unless-stopped
+    networks:
+      - rifa-net      # Rede interna para falar com o 'backend' (embora o Nginx não precise)
+      - rede_interna  # Rede do Traefik para ser acessado
+    labels:
+      - "traefik.enable=true"
+      # --- Defina o subdomínio principal da sua Rifa ---
+      - "traefik.http.routers.rifa-frontend.rule=Host(`rifa.automacao.free.nf`)"
+      - "traefik.http.routers.rifa-frontend.entrypoints=websecure"
+      - "traefik.http.routers.rifa-frontend.tls.certresolver=letsencryptresolver"
+      - "traefik.http.services.rifa-frontend.loadbalancer.server.port=80" # Porta interna do Nginx
+      - "traefik.docker.network=rede_interna" # Diz ao Traefik para usar esta rede
 
 volumes:
-  pgdata:
+  pgdata: # Volume para persistir os dados do banco
+
+networks:
+  rifa-net: # Nova rede interna SÓ para este app
+    name: rifa-net
+    driver: bridge
+  rede_interna: # Sua rede existente do Traefik e n8n
+    external: true
