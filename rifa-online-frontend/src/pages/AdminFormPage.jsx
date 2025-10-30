@@ -1,7 +1,7 @@
 // src/pages/AdminFormPage.jsx
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import styles from './AdminFormPage.module.css';
 
@@ -15,6 +15,7 @@ function AdminFormPage() {
     titulo: '',
     descricao: '',
     premio: '',
+    imagem_url: '',
     preco_por_numero: 0,
     total_numeros: 100,
     data_sorteio: '',
@@ -23,6 +24,7 @@ function AdminFormPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [winnerInfo, setWinnerInfo] = useState(null);
 
   // Se estamos em modo de edição, busca os dados da rifa ao carregar
   useEffect(() => {
@@ -38,11 +40,15 @@ function AdminFormPage() {
             titulo: rifa.titulo,
             descricao: rifa.descricao,
             premio: rifa.premio,
+            imagem_url: rifa.imagem_url || '',
             preco_por_numero: rifa.preco_por_numero,
             total_numeros: rifa.total_numeros,
             data_sorteio: dataFormatada,
             status: rifa.status,
           });
+          if (rifa.winner) {
+            setWinnerInfo(rifa.winner);
+          }
         })
         .catch(err => setError('Falha ao carregar dados da rifa.'))
         .finally(() => setLoading(false));
@@ -76,6 +82,7 @@ function AdminFormPage() {
           titulo: payload.titulo,
           descricao: payload.descricao,
           premio: payload.premio,
+          imagem_url: payload.imagem_url,
           data_sorteio: payload.data_sorteio,
           status: payload.status,
         };
@@ -102,6 +109,18 @@ function AdminFormPage() {
 
   return (
     <div className={styles.container}>
+      <Link to="/admin" className={styles.backButton}>
+        &larr; Voltar para Lista de Rifas
+      </Link>
+      {winnerInfo && (
+        <div className={styles.winnerBox}>
+          <h2 className={styles.winnerTitle}>🎉 Rifa Sorteada! 🎉</h2>
+          <p><strong>Número Vencedor:</strong> {winnerInfo.numero}</p>
+          <p><strong>Ganhador:</strong> {winnerInfo.nome_comprador || 'N/A'}</p>
+          <p><strong>Email:</strong> {winnerInfo.email_comprador || 'N/A'}</p>
+          <p><strong>Telefone:</strong> {winnerInfo.telefone_comprador || 'N/A'}</p>
+        </div>
+      )}
       <h1 className={styles.title}>
         {isEditing ? 'Editar Rifa' : 'Criar Nova Rifa'}
       </h1>
@@ -129,6 +148,18 @@ function AdminFormPage() {
             value={formData.premio}
             onChange={handleChange}
             required
+            className={styles.formInput}
+          />
+        </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="imagem_url">URL da Imagem do Prêmio</label>
+          <input
+            type="url"
+            id="imagem_url"
+            name="imagem_url"
+            value={formData.imagem_url}
+            onChange={handleChange}
+            placeholder="https://exemplo.com/imagem.jpg"
             className={styles.formInput}
           />
         </div>

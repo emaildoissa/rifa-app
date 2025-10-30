@@ -9,6 +9,7 @@ type Rifa struct {
 	Titulo         string    `json:"titulo" binding:"required"`
 	Descricao      string    `json:"descricao"`
 	Premio         string    `json:"premio" binding:"required"`
+	ImagemURL      *string   `json:"imagem_url"`
 	PrecoPorNumero float64   `json:"preco_por_numero" binding:"required,gt=0"`
 	TotalNumeros   int       `json:"total_numeros" binding:"required,gt=0"`
 	DataSorteio    time.Time `json:"data_sorteio"`
@@ -21,6 +22,7 @@ type RifaSummary struct {
 	ID              int     `json:"id"`
 	Titulo          string  `json:"titulo"`
 	Premio          string  `json:"premio"`
+	ImagemURL       *string `json:"imagem_url"`
 	PrecoPorNumero  float64 `json:"preco_por_numero"`
 	Status          string  `json:"status"`
 	NumerosVendidos int     `json:"numeros_vendidos"`
@@ -31,6 +33,7 @@ type RifaUpdateInput struct {
 	Titulo      string    `json:"titulo" binding:"required"`
 	Descricao   string    `json:"descricao"`
 	Premio      string    `json:"premio" binding:"required"`
+	ImagemURL   *string   `json:"imagem_url"`
 	DataSorteio time.Time `json:"data_sorteio"`
 	Status      string    `json:"status" binding:"required"`
 }

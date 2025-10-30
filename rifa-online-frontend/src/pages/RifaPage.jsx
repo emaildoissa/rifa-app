@@ -1,14 +1,11 @@
-// src/pages/RifaPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import styles from './RifaPage.module.css';
 
 // --- CONFIGURAÇÃO PIX MANUAL ---
-const MINHA_CHAVE_PIX = "seu-email@exemplo.com"; // <-- TROQUE AQUI
-const MEU_WHATSAPP = "(99) 99999-9999"; // <-- TROQUE AQUI
-// --- FIM DA CONFIGURAÇÃO ---
+const MINHA_CHAVE_PIX = "seu-email@exemplo.com"; 
+const MEU_WHATSAPP = "(99) 99999-9999"; 
 
 function RifaPage() {
   const { id } = useParams();
@@ -139,6 +136,9 @@ function RifaPage() {
     <div className={styles.container}>
       {/* Detalhes da Rifa */}
       <div className={styles.rifaHeader}>
+        {rifa.imagem_url && (
+          <img src={rifa.imagem_url} alt={rifa.premio} className={styles.rifaImage} />
+        )}
         <h1 className={styles.rifaTitle}>{rifa.titulo}</h1>
         <p className={styles.rifaPrize}><strong>Prêmio:</strong> {rifa.premio}</p>
         <p className={styles.rifaPrice}>R$ {rifa.preco_por_numero.toFixed(2)}</p>

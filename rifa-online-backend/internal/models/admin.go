@@ -22,3 +22,10 @@ type ParticipanteInfo struct {
 	TelefoneComprador string `json:"telefone_comprador"`
 	Numeros           []int  `json:"numeros"` // Array de números pagos por este comprador
 }
+
+type WinnerInfo struct {
+	NumeroSorteado    int     `json:"numero_sorteado"`
+	NomeComprador     *string `json:"nome_comprador"`
+	EmailComprador    *string `json:"email_comprador"`
+	TelefoneComprador *string `json:"telefone_comprador"`
+}

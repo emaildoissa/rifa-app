@@ -1,0 +1,89 @@
+/* src/pages/LoginPage.module.css */
+
+/* 1. O container principal:
+   - Usa flexbox para centralizar o formulário na tela.
+   - min-height: 100vh garante que ele ocupe a altura inteira da tela.
+   - O fundo cinza claro já vem do index.css, criando um contraste.
+*/
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px; /* Espaçamento para telas pequenas */
+  box-sizing: border-box;
+}
+
+/* 2. O "card" de login:
+   - max-width: 400px o limita em telas grandes (desktop).
+   - width: 100% faz com que ele se ajuste perfeitamente em celulares.
+   - A sombra (box-shadow) e o border-radius dão o visual moderno.
+*/
+.loginBox {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #111827;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+/* 3. Inputs responsivos:
+   - width: 100% e box-sizing: border-box são a chave
+     para que eles ocupem o espaço corretamente.
+*/
+.formInput {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #3b82f6; /* Azul do admin */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.submitButton:hover {
+  background-color: #2563eb;
+}
+
+.submitButton:disabled {
+  background-color: #9ca3af;
+}
+
+.errorMessage {
+  color: #ef4444; /* Vermelho do admin */
+  text-align: center;
+  margin-top: 16px;
+  font-weight: 500;
+}

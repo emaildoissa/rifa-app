@@ -142,3 +142,29 @@
 .deleteButton:hover {
   text-decoration: underline;
 }
+
+/* src/pages/AdminListPage.module.css */
+
+/* ... (todos os estilos anteriores) ... */
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center; 
+  flex-wrap: wrap; /* Permite que os botões quebrem a linha se não couberem */
+}
+
+.sortearButton {
+  background-color: #f59e0b; /* Laranja/Âmbar (mesmo do "pendentes") */
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.85rem; /* Ajuste de fonte se necessário */
+}
+.sortearButton:hover {
+  background-color: #d97706;
+}

@@ -94,3 +94,33 @@
 .cardLink:hover {
   background-color: #16a34a;
 }
+
+.rifasList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.rifaCard {
+  /* ... (estilos .rifaCard) ... */
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- ADICIONE ESTE NOVO ESTILO PARA A IMAGEM --- */
+.cardImage {
+  height: 180px;
+  width: 100%;
+  object-fit: cover; /* Garante que a imagem cubra o espaço sem distorcer */
+}
+
+/* Estilo antigo do placeholder, agora modificado */
+.cardImagePlaceholder {
+  height: 180px;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  width: 100%; /* Garante que o placeholder ocupe a largura */
+}

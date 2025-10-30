@@ -1,5 +1,3 @@
-// src/pages/AdminListPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
@@ -40,6 +38,42 @@ function AdminListPage() {
       setRifas(rifas.filter((rifa) => rifa.id !== rifaId));
     } catch (err) {
       setError('Falha ao apagar rifa. Tente novamente.');
+    }
+  };
+
+  const handleSortear = async (rifaId, rifaTitulo) => {
+    // Confirmação de segurança
+    if (!window.confirm(
+      `ATENÇÃO!\n\nVocê está prestes a sortear a rifa: "${rifaTitulo}".\n\nEsta ação é IRREVERSÍVEL e definirá um ganhador imediatamente.\n\nDeseja continuar?`
+    )) {
+      return;
+    }
+
+    try {
+      // Chama o novo endpoint do backend
+      const response = await api.post(`/admin/rifas/${rifaId}/sortear`);
+      
+      // O backend retorna os dados do ganhador (WinnerInfo)
+      const ganhador = response.data;
+
+      // Mostra um alerta de sucesso com os dados do ganhador
+      alert(
+        `🎉 SORTEIO REALIZADO! 🎉\n\n` +
+        `Rifa: ${rifaTitulo}\n` +
+        `Número Vencedor: ${ganhador.numero_sorteado}\n\n` +
+        `Ganhador:\n` +
+        `Nome: ${ganhador.nome_comprador}\n` +
+        `Email: ${ganhador.email_comprador}\n` +
+        `Telefone: ${ganhador.telefone_comprador}`
+      );
+
+      // Atualiza a lista de rifas (a rifa sorteada agora aparecerá como "sorteada")
+      fetchAdminRifas();
+
+    } catch (err) {
+      // Mostra o erro retornado pela API (ex: "Nenhum número pago", "Já sorteada")
+      const errorMsg = err.response?.data?.error || 'Erro desconhecido ao tentar sortear.';
+      alert(`Falha no Sorteio: ${errorMsg}`);
     }
   };
 
@@ -101,6 +135,14 @@ function AdminListPage() {
                 <Link to={`/admin/rifa/${rifa.id}/participantes`} className={styles.participantsButton}>
                   Participantes
                 </Link>
+                {rifa.status === 'ativa' && (
+                  <button
+                    onClick={() => handleSortear(rifa.id, rifa.titulo)}
+                    className={styles.sortearButton}
+                  >
+                    Sortear
+                  </button>
+                )}
                 <button 
                   onClick={() => handleDelete(rifa.id)} 
                   className={styles.deleteButton}

@@ -1,8 +1,8 @@
-// src/pages/AdminPagamentosPage.jsx
-
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import styles from './AdminPagamentosPage.module.css'; // Usaremos um novo CSS
+
 
 function AdminPagamentosPage() {
   const [pagamentos, setPagamentos] = useState([]);
@@ -63,6 +63,9 @@ function AdminPagamentosPage() {
 
   return (
     <div className={styles.container}>
+      <Link to="/admin" className={styles.backButton}>
+        &larr; Voltar para Lista de Rifas
+      </Link>
       <h1 className={styles.title}>Gerenciador de Pagamentos Pendentes</h1>
 
       {pagamentos.length === 0 ? (

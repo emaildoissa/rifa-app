@@ -13,7 +13,7 @@ function HomePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // ... (lógica do useEffect continua a mesma)
+   
     const fetchRifas = async () => {
       try {
         const response = await api.get('/rifas');
@@ -47,9 +47,13 @@ function HomePage() {
         <div className={styles.rifasList}>
           {rifas.map((rifa) => (
             <div key={rifa.id} className={styles.rifaCard}>
-              <div className={styles.cardImagePlaceholder}>
-                Imagem do Prêmio
-              </div>
+            {rifa.imagem_url ? (
+                <img src={rifa.imagem_url} alt={rifa.premio} className={styles.cardImage} />
+              ) : (
+                <div className={styles.cardImagePlaceholder}>
+                  Sem Imagem
+                </div>
+              )}
               
               <div className={styles.cardContent}>
                 <h2 className={styles.cardTitle}>{rifa.titulo}</h2>

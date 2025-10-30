@@ -64,6 +64,8 @@ func main() {
 		admin.POST("/pagamentos/:id/aprovar", handlers.AprovarPagamento)
 		admin.POST("/pagamentos/:id/liberar", handlers.LiberarPagamento)
 
+		admin.POST("/rifas/:id/sortear", handlers.SortearRifa)
+
 	}
 
 	log.Println("Servidor iniciado na porta 8080")

@@ -16,6 +16,7 @@ import (
 type RifaDetail struct {
 	models.Rifa
 	Numeros []models.Numero `json:"numeros"`
+	Winner  *models.Numero  `json:"winner,omitempty"`
 }
 
 // CreateRifa é o handler para criar uma nova rifa e seus números associados.
@@ -40,12 +41,19 @@ func CreateRifa(c *gin.Context) {
 
 	// 1. Inserir a rifa na tabela 'rifas' e obter o ID gerado
 	sqlRifa := `
-		INSERT INTO rifas (titulo, descricao, premio, preco_por_numero, total_numeros, data_sorteio, status)
+		INSERT INTO rifas (titulo, descricao, premio, preco_por_numero, total_numeros, data_sorteio, status, imagem_url)
 		VALUES ($1, $2, $3, $4, $5, $6, 'ativa')
 		RETURNING id, created_at, updated_at, status
 	`
 	err = tx.QueryRow(context.Background(), sqlRifa,
-		input.Titulo, input.Descricao, input.Premio, input.PrecoPorNumero, input.TotalNumeros, input.DataSorteio,
+		input.Titulo,         // $1
+		input.Descricao,      // $2
+		input.Premio,         // $3
+		input.PrecoPorNumero, // $4
+		input.TotalNumeros,   // $5
+		input.DataSorteio,    // $6
+		"ativa",              // $7 (para status)
+		input.ImagemURL,      // $8 (agora é *string, pgx lida com nil)
 	).Scan(&input.ID, &input.CreatedAt, &input.UpdatedAt, &input.Status)
 
 	if err != nil {
@@ -93,9 +101,12 @@ func GetRifaByID(c *gin.Context) {
 	}
 	var rifa models.Rifa
 	var numeros []models.Numero
-	sqlRifa := `SELECT id, titulo, descricao, premio, preco_por_numero, total_numeros, data_sorteio, status FROM rifas WHERE id = $1`
+
+	// 1. Busca os dados principais da rifa (incluindo numero_sorteado)
+	sqlRifa := `SELECT id, titulo, descricao, premio, preco_por_numero, total_numeros, data_sorteio, status, imagem_url, numero_sorteado FROM rifas WHERE id = $1`
 	err = database.DB.QueryRow(context.Background(), sqlRifa, id).Scan(
-		&rifa.ID, &rifa.Titulo, &rifa.Descricao, &rifa.Premio, &rifa.PrecoPorNumero, &rifa.TotalNumeros, &rifa.DataSorteio, &rifa.Status,
+		&rifa.ID, &rifa.Titulo, &rifa.Descricao, &rifa.Premio, &rifa.PrecoPorNumero, &rifa.TotalNumeros, &rifa.DataSorteio, &rifa.Status, &rifa.ImagemURL,
+		&rifa.NumeroSorteado, // Scan do número sorteado
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -107,44 +118,38 @@ func GetRifaByID(c *gin.Context) {
 		return
 	}
 
-	// --- 2. CORREÇÃO AQUI ---
-	const tempoExpiracao = "15 minutes"
-	// Usamos fmt.Sprintf para injetar o valor do intervalo direto na string.
-	// Isso é seguro pois 'tempoExpiracao' é uma constante interna.
-	/* 	sqlNumeros := fmt.Sprintf(`
-	        SELECT id, rifa_id, numero,
-	        CASE
-	            WHEN status = 'reservado' AND data_reserva < (NOW() - INTERVAL '%s') THEN 'disponivel'
-	            ELSE status
-	        END as status,
-	        nome_comprador, email_comprador, telefone_comprador
-	        FROM numeros
-	        WHERE rifa_id = $1
-	        ORDER BY numero ASC
-	    `, tempoExpiracao) // O valor de '15 minutes' é inserido onde está o '%s'
+	// 2. Busca os dados do Ganhador (se a rifa estiver sorteada)
+	var winnerData models.Numero
+	if rifa.Status == "sorteada" && rifa.NumeroSorteado > 0 {
+		sqlWinner := `
+            SELECT id, rifa_id, numero, status, nome_comprador, email_comprador, telefone_comprador, data_reserva
+            FROM numeros 
+            WHERE rifa_id = $1 AND numero = $2
+        `
+		// Note que o modelo Numero usa ponteiros, lidando com NULLs
+		errWinner := database.DB.QueryRow(context.Background(), sqlWinner, id, rifa.NumeroSorteado).Scan(
+			&winnerData.ID, &winnerData.RifaID, &winnerData.Numero, &winnerData.Status,
+			&winnerData.NomeComprador, &winnerData.EmailComprador, &winnerData.TelefoneComprador, &winnerData.DataReserva,
+		)
+		if errWinner != nil && errWinner != pgx.ErrNoRows {
+			// Se der erro (exceto 'não encontrado'), apenas loga, não quebra a requisição
+			log.Printf("Aviso: Rifa %d está sorteada (número %d), mas não foi possível encontrar dados do ganhador: %v", id, rifa.NumeroSorteado, errWinner)
+		}
+	}
 
-		// Agora a query tem apenas um placeholder ($1), que é o 'id'
-		rows, err := database.DB.Query(context.Background(), sqlNumeros, id)
-		if err != nil {
-			log.Printf("Erro ao buscar números da rifa: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar os números da rifa"})
-			return
-		} */
+	// 3. Busca todos os números (como antes)
 	sqlNumeros := `
     SELECT id, rifa_id, numero, status, nome_comprador, email_comprador, telefone_comprador
     FROM numeros
     WHERE rifa_id = $1
     ORDER BY numero ASC
 `
-	// A chamada volta a ter apenas um argumento: 'id'
 	rows, err := database.DB.Query(context.Background(), sqlNumeros, id)
 	if err != nil {
 		log.Printf("Erro ao buscar números da rifa: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar os números da rifa"})
 		return
 	}
-	// --- FIM DA CORREÇÃO ---
-
 	defer rows.Close()
 	for rows.Next() {
 		var n models.Numero
@@ -154,10 +159,18 @@ func GetRifaByID(c *gin.Context) {
 		}
 		numeros = append(numeros, n)
 	}
+
+	// 4. Monta a resposta final
 	response := RifaDetail{
 		Rifa:    rifa,
 		Numeros: numeros,
 	}
+
+	// Adiciona o ganhador à resposta se ele foi encontrado
+	if winnerData.ID != 0 {
+		response.Winner = &winnerData
+	}
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -165,7 +178,7 @@ func GetAllRifas(c *gin.Context) {
 	var rifas []models.RifaSummary
 
 	sql := `
-		SELECT id, titulo, premio, preco_por_numero, status
+		SELECT id, titulo, premio, preco_por_numero, status, imagem_url
 		FROM rifas
 		WHERE status = 'ativa'
 		ORDER BY created_at DESC
@@ -181,7 +194,7 @@ func GetAllRifas(c *gin.Context) {
 
 	for rows.Next() {
 		var r models.RifaSummary
-		if err := rows.Scan(&r.ID, &r.Titulo, &r.Premio, &r.PrecoPorNumero, &r.Status); err != nil {
+		if err := rows.Scan(&r.ID, &r.Titulo, &r.Premio, &r.PrecoPorNumero, &r.Status, &r.ImagemURL); err != nil {
 			log.Printf("Erro ao escanear linha da rifa: %v", err)
 			continue
 		}
@@ -360,8 +373,9 @@ func UpdateRifa(c *gin.Context) {
 			premio = $3,
 			data_sorteio = $4,
 			status = $5,
+			imagem_url = $6,
 			updated_at = NOW()
-		WHERE id = $6
+		WHERE id = $7
 	`
 	tag, err := database.DB.Exec(context.Background(), sql,
 		input.Titulo,
@@ -369,6 +383,7 @@ func UpdateRifa(c *gin.Context) {
 		input.Premio,
 		input.DataSorteio,
 		input.Status,
+		input.ImagemURL,
 		rifaID,
 	)
 
@@ -431,6 +446,7 @@ func GetAdminAllRifas(c *gin.Context) {
             r.preco_por_numero, 
             r.status,
             r.total_numeros, 
+			r.imagem_url,
             (SELECT COUNT(*) FROM numeros n WHERE n.rifa_id = r.id AND n.status = 'pago') AS numeros_vendidos
         FROM rifas r
         ORDER BY r.id DESC
@@ -446,15 +462,16 @@ func GetAdminAllRifas(c *gin.Context) {
 
 	for rows.Next() {
 		var r models.RifaSummary
-		// Atualize o Scan para incluir os novos campos
+
 		if err := rows.Scan(
 			&r.ID,
 			&r.Titulo,
 			&r.Premio,
 			&r.PrecoPorNumero,
 			&r.Status,
-			&r.TotalNumeros,    // <-- Novo Scan
-			&r.NumerosVendidos, // <-- Novo Scan
+			&r.TotalNumeros,
+			&r.ImagemURL,
+			&r.NumerosVendidos,
 		); err != nil {
 			log.Printf("Erro ao escanear linha da rifa (admin): %v", err)
 			continue

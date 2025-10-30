@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 // GetPendingPagamentos lista todos os pagamentos pendentes para o dashboard
@@ -284,4 +285,82 @@ func GetParticipantesPorRifa(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, participantes)
+}
+func SortearRifa(c *gin.Context) {
+	rifaID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID da rifa inválido"})
+		return
+	}
+
+	tx, err := database.DB.Begin(context.Background())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao iniciar transação"})
+		return
+	}
+	// Usamos Rollback em defer. Se o Commit() for chamado antes, o Rollback() não faz nada.
+	defer tx.Rollback(context.Background())
+
+	// 1. Verificar se a rifa já foi sorteada
+	var status string
+	err = tx.QueryRow(context.Background(), "SELECT status FROM rifas WHERE id = $1", rifaID).Scan(&status)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Rifa não encontrada"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao verificar status da rifa"})
+		return
+	}
+	if status != "ativa" {
+		c.JSON(http.StatusConflict, gin.H{"error": "Esta rifa não está ativa, não pode ser sorteada (status: " + status + ")"})
+		return
+	}
+
+	// 2. Sortear UM número aleatório APENAS entre os 'pagos'
+	var ganhador models.WinnerInfo
+	querySorteio := `
+		SELECT 
+			numero, nome_comprador, email_comprador, telefone_comprador 
+		FROM numeros
+		WHERE rifa_id = $1 AND status = 'pago'
+		ORDER BY RANDOM() 
+		LIMIT 1
+	`
+	err = tx.QueryRow(context.Background(), querySorteio, rifaID).Scan(
+		&ganhador.NumeroSorteado,
+		&ganhador.NomeComprador,
+		&ganhador.EmailComprador,
+		&ganhador.TelefoneComprador,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Sorteio falhou. Não há nenhum número pago nesta rifa."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao realizar o sorteio"})
+		return
+	}
+
+	// 3. Atualizar a rifa como 'sorteada' e salvar o número
+	queryUpdateRifa := `
+		UPDATE rifas 
+		SET status = 'sorteada', numero_sorteado = $1
+		WHERE id = $2
+	`
+	_, err = tx.Exec(context.Background(), queryUpdateRifa, ganhador.NumeroSorteado, rifaID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao salvar o resultado do sorteio na rifa"})
+		return
+	}
+
+	// 4. Se tudo deu certo, comitar a transação
+	if err := tx.Commit(context.Background()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao finalizar o sorteio"})
+		return
+	}
+
+	// 5. Retornar os dados do ganhador
+	c.JSON(http.StatusOK, ganhador)
 }
