@@ -422,11 +422,18 @@ func DeleteRifa(c *gin.Context) {
 func GetAdminAllRifas(c *gin.Context) {
 	var rifas []models.RifaSummary
 
-	// É igual ao GetAllRifas, mas sem o "WHERE status = 'ativa'"
+	// Query modificada para incluir total_numeros e a contagem de vendidos (status='pago')
 	sql := `
-        SELECT id, titulo, premio, preco_por_numero, status
-        FROM rifas
-        ORDER BY id DESC
+        SELECT 
+            r.id, 
+            r.titulo, 
+            r.premio, 
+            r.preco_por_numero, 
+            r.status,
+            r.total_numeros, 
+            (SELECT COUNT(*) FROM numeros n WHERE n.rifa_id = r.id AND n.status = 'pago') AS numeros_vendidos
+        FROM rifas r
+        ORDER BY r.id DESC
     `
 
 	rows, err := database.DB.Query(context.Background(), sql)
@@ -439,7 +446,16 @@ func GetAdminAllRifas(c *gin.Context) {
 
 	for rows.Next() {
 		var r models.RifaSummary
-		if err := rows.Scan(&r.ID, &r.Titulo, &r.Premio, &r.PrecoPorNumero, &r.Status); err != nil {
+		// Atualize o Scan para incluir os novos campos
+		if err := rows.Scan(
+			&r.ID,
+			&r.Titulo,
+			&r.Premio,
+			&r.PrecoPorNumero,
+			&r.Status,
+			&r.TotalNumeros,    // <-- Novo Scan
+			&r.NumerosVendidos, // <-- Novo Scan
+		); err != nil {
 			log.Printf("Erro ao escanear linha da rifa (admin): %v", err)
 			continue
 		}

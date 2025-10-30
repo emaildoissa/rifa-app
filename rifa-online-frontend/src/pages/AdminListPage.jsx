@@ -50,9 +50,17 @@ function AdminListPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Painel de Administração</h1>
-        <Link to="/admin/new" className={styles.newButton}>
-          Criar Nova Rifa
-        </Link>
+        <div> {/* --- 1. Adicione um div para agrupar os botões --- */}
+          
+          {/* --- 2. Adicione este link para a nova página --- */}
+          <Link to="/admin/pagamentos" className={styles.pendingButton}>
+            Ver Pagamentos Pendentes
+          </Link>
+          
+          <Link to="/admin/new" className={styles.newButton}>
+            Criar Nova Rifa
+          </Link>
+        </div>
       </div>
 
       <table className={styles.table}>
@@ -62,6 +70,7 @@ function AdminListPage() {
             <th>Título</th>
             <th>Status</th>
             <th>Preço</th>
+            <th>Progresso</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -72,9 +81,25 @@ function AdminListPage() {
               <td>{rifa.titulo}</td>
               <td>{rifa.status}</td>
               <td>R$ {rifa.preco_por_numero.toFixed(2)}</td>
+              <td>
+                <div className={styles.progressBarContainer}>
+                  <div
+                    className={styles.progressBarFill}
+                    // Calcula a porcentagem e define a largura da barra
+                    style={{ width: `${(rifa.numeros_vendidos / rifa.total_numeros) * 100}%` }}
+                  ></div>
+                </div>
+                {/* Texto: "Vendidos / Total" */}
+                <span className={styles.progressText}>
+                  {rifa.numeros_vendidos} / {rifa.total_numeros}
+                </span>
+              </td>
               <td className={styles.actions}>
                 <Link to={`/admin/edit/${rifa.id}`} className={styles.editButton}>
                   Editar
+                </Link>
+                <Link to={`/admin/rifa/${rifa.id}/participantes`} className={styles.participantsButton}>
+                  Participantes
                 </Link>
                 <button 
                   onClick={() => handleDelete(rifa.id)} 

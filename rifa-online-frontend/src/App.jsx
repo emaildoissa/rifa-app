@@ -9,6 +9,8 @@ import RifaPage from './pages/RifaPage';
 import LoginPage from './pages/LoginPage';
 import AdminListPage from './pages/AdminListPage';
 import AdminFormPage from './pages/AdminFormPage';
+import AdminPagamentosPage from './pages/AdminPagamentosPage';
+import AdminRifaParticipantesPage from './pages/AdminRifaParticipantesPage';
 
 // 1. IMPORTE O NOSSO NOVO COMPONENTE DE SEGURANÇA
 import ProtectedRoute from './components/ProtectedRoute';
@@ -52,7 +54,22 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          
+          <Route 
+            path="/admin/pagamentos" 
+            element={
+              <ProtectedRoute>
+                <AdminPagamentosPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/admin/rifa/:id/participantes"
+            element={
+              <ProtectedRoute>
+                <AdminRifaParticipantesPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </div>

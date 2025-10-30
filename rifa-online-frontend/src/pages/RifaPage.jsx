@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-
-// 1. Importe o novo arquivo de estilos
 import styles from './RifaPage.module.css';
+
+// --- CONFIGURAÇÃO PIX MANUAL ---
+const MINHA_CHAVE_PIX = "seu-email@exemplo.com"; // <-- TROQUE AQUI
+const MEU_WHATSAPP = "(99) 99999-9999"; // <-- TROQUE AQUI
+// --- FIM DA CONFIGURAÇÃO ---
 
 function RifaPage() {
   const { id } = useParams();
@@ -13,20 +16,18 @@ function RifaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedNumbers, setSelectedNumbers] = useState([]);
-
-  // Estados do formulário
   const [formData, setFormData] = useState({
     nome_comprador: '',
     email_comprador: '',
     telefone_comprador: '',
     cpf_cnpj: '',
   });
-  
   const [isReserving, setIsReserving] = useState(false);
   const [reservationError, setReservationError] = useState(null);
-  const [pixData, setPixData] = useState(null);
+  const [reservationSuccessData, setReservationSuccessData] = useState(null);
+  const [copySuccess, setCopySuccess] = useState('');
+  const [currentStep, setCurrentStep] = useState('selecting'); // 'selecting' ou 'fillingForm'
 
-  // useEffect (lógica de busca) permanece o mesmo
   useEffect(() => {
     const fetchRifaDetails = async () => {
       try {
@@ -42,8 +43,8 @@ function RifaPage() {
     fetchRifaDetails();
   }, [id]);
 
-  // handleNumberClick permanece o mesmo
   const handleNumberClick = (number) => {
+    if (currentStep !== 'selecting') return;
     if (selectedNumbers.includes(number)) {
       setSelectedNumbers(selectedNumbers.filter((n) => n !== number));
     } else {
@@ -51,7 +52,6 @@ function RifaPage() {
     }
   };
 
-  // handleFormChange permanece o mesmo
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -60,23 +60,17 @@ function RifaPage() {
     }));
   };
 
-  // handleReservation permanece o mesmo
   const handleReservation = async (e) => {
     e.preventDefault();
     setIsReserving(true);
     setReservationError(null);
-
-    const payload = {
-      ...formData,
-      numeros: selectedNumbers,
-    };
-
+    const payload = { ...formData, numeros: selectedNumbers };
     try {
       const response = await api.post(`/rifas/${id}/reservar`, payload);
-      setPixData(response.data);
+      setReservationSuccessData(response.data);
     } catch (err) {
       let errorMsg = 'Erro ao processar sua reserva. Tente novamente.';
-      if (err.response && err.response.data && err.response.data.error) {
+      if (err.response?.data?.error) {
         errorMsg = err.response.data.error;
       }
       setReservationError(errorMsg);
@@ -86,70 +80,77 @@ function RifaPage() {
     }
   };
 
-  // 2. Nova função para determinar a CLASSE do botão
   const getButtonClassName = (number) => {
+    let baseStyle = styles.numberButton;
     if (number.status !== 'disponivel') {
-      return styles.indisponivel;
+      return `${baseStyle} ${styles.indisponivel}`;
     }
     if (selectedNumbers.includes(number.numero)) {
-      return styles.selecionado;
+      return `${baseStyle} ${styles.selecionado}`;
     }
-    return styles.disponivel;
+    const interactionClass = currentStep !== 'selecting' ? styles.disabledInteraction : '';
+    return `${baseStyle} ${styles.disponivel} ${interactionClass}`;
   };
 
-  // --- RENDERIZAÇÃO COM ESTILOS ---
+  const handleCopyPixKey = () => {
+    navigator.clipboard.writeText(MINHA_CHAVE_PIX).then(() => {
+      setCopySuccess('Chave PIX copiada!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    }, (err) => {
+      setCopySuccess('Falha ao copiar.');
+      console.error('Falha ao copiar PIX: ', err);
+    });
+  };
 
-  if (loading) {
-    return <div className="text-center p-10">Carregando detalhes da rifa...</div>;
-  }
+  const proceedToForm = () => setCurrentStep('fillingForm');
+  const backToSelection = () => setCurrentStep('selecting');
 
-  if (error) {
-    return <div className="text-center p-10 text-red-500">Erro: {error}</div>;
-  }
+  // --- RENDERIZAÇÃO ---
+  if (loading) return <div className="text-center p-10">Carregando detalhes da rifa...</div>;
+  if (error) return <div className="text-center p-10 text-red-500">Erro: {error}</div>;
+  if (!rifa) return <div>Rifa não encontrada.</div>;
 
-  if (!rifa) {
-    return <div>Rifa não encontrada.</div>;
-  }
-
-  // 3. Renderização da Tela de PIX (com estilos)
-  if (pixData) {
+  if (reservationSuccessData) {
+    // Tela de Sucesso (PIX Manual)
     return (
-      <div className={styles.pixContainer}>
-        <h2 className={styles.pixTitle}>Pague seu PIX para garantir seus números!</h2>
-        <p>Sua reserva foi criada. Realize o pagamento para confirmar.</p>
+      <div className={styles.successContainer}>
+        <h2 className={styles.successTitle}>Reserva Realizada!</h2>
+        <p>Seus números foram reservados com sucesso. Para confirmar, realize o pagamento via PIX e envie o comprovante.</p>
         <p className={styles.summaryTotal}>
-          <strong>Valor Total:</strong> R$ {pixData.value.toFixed(2)}
+          <strong>Valor Total:</strong> R$ {reservationSuccessData.valor.toFixed(2)}
         </p>
-        
-        <h3>PIX Copia e Cola:</h3>
-        <textarea
-          readOnly
-          value={pixData.pixQrCode.payload}
-          className={styles.pixTextarea}
-        />
-        <p className={styles.pixStatus}>
-          <strong>Status:</strong> {pixData.status}
+        <h3>Pague com esta Chave PIX:</h3>
+        <div className={styles.pixKeyBox}>
+          <span className={styles.pixKey}>{MINHA_CHAVE_PIX}</span>
+          <button onClick={handleCopyPixKey} className={styles.copyButton}>
+            {copySuccess ? copySuccess : 'Copiar Chave'}
+          </button>
+        </div>
+        <p className={styles.pixInstructions}>
+          <strong>Importante:</strong> Envie o comprovante de pagamento para o WhatsApp: <strong> {MEU_WHATSAPP} </strong> para validarmos sua compra.
         </p>
-        <a href={pixData.invoiceUrl} target="_blank" rel="noopener noreferrer" className={styles.pixLink}>
-          Ver Fatura no Asaas
-        </a>
+        <p className={styles.thankYou}>Obrigado por participar e boa sorte!</p>
       </div>
     );
   }
 
-  // 4. Renderização da Página Principal (com estilos)
+  // Página Principal (Seleção ou Formulário)
   return (
     <div className={styles.container}>
+      {/* Detalhes da Rifa */}
       <div className={styles.rifaHeader}>
         <h1 className={styles.rifaTitle}>{rifa.titulo}</h1>
         <p className={styles.rifaPrize}><strong>Prêmio:</strong> {rifa.premio}</p>
         <p className={styles.rifaPrice}>R$ {rifa.preco_por_numero.toFixed(2)}</p>
         <p className={styles.rifaDescription}>{rifa.descricao}</p>
       </div>
-      
-      {/* Carrinho e Formulário */}
-      {selectedNumbers.length > 0 && (
+
+      {/* Formulário (só aparece na etapa 'fillingForm') */}
+      {currentStep === 'fillingForm' && (
         <div className={styles.reservationBox}>
+          <button onClick={backToSelection} className={styles.backButton}>
+            &larr; Voltar à Seleção de Números
+          </button>
           <h3 className={styles.reservationTitle}>Finalizar Reserva</h3>
           <p className={styles.summaryText}>
             <strong>Números:</strong> {selectedNumbers.sort((a, b) => a - b).join(', ')}
@@ -160,8 +161,7 @@ function RifaPage() {
           <p className={styles.summaryTotal}>
             <strong>Total:</strong> R$ {(selectedNumbers.length * rifa.preco_por_numero).toFixed(2)}
           </p>
-          
-          <form onSubmit={handleReservation} style={{marginTop: '20px'}}>
+          <form onSubmit={handleReservation} style={{ marginTop: '20px' }}>
             <div className={styles.formGroup}>
               <label htmlFor="nome_comprador">Nome Completo:</label>
               <input type="text" id="nome_comprador" name="nome_comprador" onChange={handleFormChange} required className={styles.formInput} />
@@ -178,38 +178,47 @@ function RifaPage() {
               <label htmlFor="cpf_cnpj">CPF (apenas números):</label>
               <input type="text" id="cpf_cnpj" name="cpf_cnpj" onChange={handleFormChange} required className={styles.formInput} />
             </div>
-            
-            <button 
-              type="submit" 
-              disabled={isReserving} 
-              className={styles.submitButton}
-            >
-              {isReserving ? 'Reservando...' : 'Reservar e Gerar PIX'}
+            <button type="submit" disabled={isReserving} className={styles.submitButton}>
+              {isReserving ? 'Reservando...' : 'Confirmar Reserva e Ver Instruções PIX'}
             </button>
-            
             {reservationError && (
-              <p className={styles.errorMessage}>
-                <strong>Erro:</strong> {reservationError}
-              </p>
+              <p className={styles.errorMessage}><strong>Erro:</strong> {reservationError}</p>
             )}
           </form>
         </div>
       )}
-      
-      {/* Grade de Números */}
-      <h2 className={styles.numbersTitle}>Escolha seus números:</h2>
-      <div className={styles.numbersGrid}>
-        {rifa.numeros.map((numero) => (
-          <button 
-            key={numero.id} 
-            className={`${styles.numberButton} ${getButtonClassName(numero)}`}
-            disabled={numero.status !== 'disponivel'}
-            onClick={() => handleNumberClick(numero.numero)}
-          >
-            {numero.numero}
+
+      {/* --- Grade de Números (só aparece na etapa 'selecting') --- */}
+      {currentStep === 'selecting' && (
+        <> {/* Fragmento para agrupar o título e a grade */}
+          <h2 className={styles.numbersTitle}>Escolha seus números:</h2>
+          <div className={styles.numbersGrid}>
+            {rifa.numeros.map((numero) => (
+              <button
+                key={numero.id}
+                className={getButtonClassName(numero)}
+                disabled={numero.status !== 'disponivel'} // Só desabilita se não disponível
+                onClick={() => handleNumberClick(numero.numero)}
+              >
+                {numero.numero}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Botão para Proceder ao Formulário (só aparece na etapa 'selecting' e se houver números) */}
+      {currentStep === 'selecting' && selectedNumbers.length > 0 && (
+        <div className={styles.proceedButtonContainer}>
+           <p>
+            {selectedNumbers.length} número(s) selecionado(s) - Total: R$ {(selectedNumbers.length * rifa.preco_por_numero).toFixed(2)}
+          </p>
+          <button onClick={proceedToForm} className={styles.proceedButton}>
+            Confirmar Números e Continuar
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,0 +1,66 @@
+/* src/pages/AdminRifaParticipantesPage.module.css */
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.rifaSubTitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 24px;
+}
+
+.backButton {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #3b82f6; /* Azul */
+  text-decoration: none;
+  font-weight: 500;
+}
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}

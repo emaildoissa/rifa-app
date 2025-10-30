@@ -5,7 +5,7 @@ import (
 	"log"
 	"rifa-online-backend/internal/database"
 	"rifa-online-backend/internal/handlers"
-	"rifa-online-backend/internal/middleware" // <-- 1. IMPORTE O MIDDLEWARE
+	"rifa-online-backend/internal/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -28,10 +28,8 @@ func main() {
 		"http://191.252.223.221:8081",
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"} // Permite o cabeçalho de Authorization
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
 	router.Use(cors.New(config))
-
-	// --- 2. DIVIDIR A API EM GRUPOS ---
 
 	// Grupo /v1 (rotas públicas)
 	v1 := router.Group("/api/v1")
@@ -40,34 +38,32 @@ func main() {
 			c.JSON(200, gin.H{"status": "UP"})
 		})
 
-		// Rota de login pública
 		v1.POST("/login", handlers.Login)
 
-		// Rotas públicas de rifas
 		v1.GET("/rifas", handlers.GetAllRifas)
 		v1.GET("/rifas/:id", handlers.GetRifaByID)
 		v1.POST("/rifas/:id/reservar", handlers.ReservarNumeros)
 
-		// Rota de webhook
-		//v1.POST("/webhooks/asaas", handlers.AsaasWebhookHandler)
+		// --- ROTA DO WEBHOOK REMOVIDA ---
+		// v1.POST("/webhooks/asaas", handlers.AsaasWebhookHandler)
 	}
 
 	// Grupo /admin (rotas protegidas)
-	// --- 3. CRIAR O GRUPO DE ADMIN E APLICAR O MIDDLEWARE ---
 	admin := router.Group("/api/v1/admin")
-	admin.Use(middleware.AuthMiddleware()) // <-- O SEGURANÇA FICA NA PORTA DESTE GRUPO
+	admin.Use(middleware.AuthMiddleware()) // <-- O SEGURANÇA FICA NA PORTA
 	{
-		// GET /api/v1/admin/rifas
+		// Rotas de gestão de Rifas
 		admin.GET("/rifas", handlers.GetAdminAllRifas)
+		admin.POST("/rifas", handlers.CreateRifa)
+		admin.PUT("/rifas/:id", handlers.UpdateRifa)
+		admin.DELETE("/rifas/:id", handlers.DeleteRifa)
+		admin.GET("/rifas/:id/participantes", handlers.GetParticipantesPorRifa) // <-- ADICIONE ESTA LINHA
 
-		// POST /api/v1/admin/rifas
-		admin.POST("/rifas", handlers.CreateRifa) // <-- MOVEMOS PARA CÁ
+		// --- NOVAS ROTAS DE GESTÃO DE PAGAMENTOS ---
+		admin.GET("/pagamentos/pendentes", handlers.GetPendingPagamentos)
+		admin.POST("/pagamentos/:id/aprovar", handlers.AprovarPagamento)
+		admin.POST("/pagamentos/:id/liberar", handlers.LiberarPagamento)
 
-		// PUT /api/v1/admin/rifas/:id
-		admin.PUT("/rifas/:id", handlers.UpdateRifa) // <-- MOVEMOS PARA CÁ
-
-		// DELETE /api/v1/admin/rifas/:id
-		admin.DELETE("/rifas/:id", handlers.DeleteRifa) // <-- MOVEMOS PARA CÁ
 	}
 
 	log.Println("Servidor iniciado na porta 8080")
